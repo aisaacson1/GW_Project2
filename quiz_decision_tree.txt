@@ -1,0 +1,28 @@
+|--- Dimension(Location)VsMeasure <= 0.50
+|   |--- Dimension(Time)VsMeasure <= 0.50
+|   |   |--- MeasureVsMeasure <= 0.50
+|   |   |   |--- Comparison <= 0.50
+|   |   |   |   |--- Number Correct <= 0.50
+|   |   |   |   |   |--- class: Pie
+|   |   |   |   |--- Number Correct >  0.50
+|   |   |   |   |   |--- class: Bar
+|   |   |   |--- Comparison >  0.50
+|   |   |   |   |--- Number Correct <= 0.50
+|   |   |   |   |   |--- class: Bar
+|   |   |   |   |--- Number Correct >  0.50
+|   |   |   |   |   |--- class: Pie
+|   |   |--- MeasureVsMeasure >  0.50
+|   |   |   |--- Number Correct <= 0.50
+|   |   |   |   |--- class: Scatter
+|   |   |   |--- Number Correct >  0.50
+|   |   |   |   |--- class: Bubble
+|   |--- Dimension(Time)VsMeasure >  0.50
+|   |   |--- Number Correct <= 0.50
+|   |   |   |--- class: Rings
+|   |   |--- Number Correct >  0.50
+|   |   |   |--- class: Table
+|--- Dimension(Location)VsMeasure >  0.50
+|   |--- Number Correct <= 0.50
+|   |   |--- class: Map
+|   |--- Number Correct >  0.50
+|   |   |--- class: Bar

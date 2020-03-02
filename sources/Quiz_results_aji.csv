@@ -1,0 +1,5 @@
+categoryvsvalue,DimensionVsMeasure,BAR
+comparison,Comparison,PIE
+valuevslocation,Dimension(Location)VsMeasure,BAR
+valuevstime,Dimension(Time)VsMeasure,Table
+valuevsvalue,MeasureVsMeasure,Bubble
