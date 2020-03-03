@@ -2,9 +2,20 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 import plotly.express as px
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import base64
+import datetime
+import io
+import cufflinks as cf
+import dash_table
+from dash.dependencies import Input, Output, State
 
-df = pd.read_csv(r"C:\Users\Aaron\Documents\GW_Data_Course\AIsaacson_GW_HW\GW_Project2\sources\Quiz_results_29FEB_noon.csv")
-df.head()
+
+
+url="https://gwprojectflask.herokuapp.com/api/data/raw_results"
+df = pd.read_json(url)
 
 a=df['Data_Type']
 c=df['Chart_Type']
@@ -130,7 +141,6 @@ def pie_function(x,y):
             method='restyle'
         )
         agg_func.append(agg)
-        
     return{
         'data' : [dict(
             type = 'pie',
@@ -158,3 +168,49 @@ def pie_function(x,y):
                 )]
             )
         }
+
+def generate_table(dataframe, max_rows=10):
+    return html.Table(
+        # Header
+        [html.Tr([html.Th(col) for col in dataframe.columns])] +
+
+        # Body
+        [html.Tr([
+            html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
+        ]) for i in range(min(len(dataframe), max_rows))]
+    )
+
+
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+app.layout = html.Div(children=[
+    html.H1(children='Generate Charts Based on Actual User Feedback'),
+
+    html.Div(children='''
+        Select Which Columns you would like to be graphed
+    '''),
+
+    html.Div(generate_table(df)),
+
+    dcc.Graph(
+        id='example-graph',
+        figure=pie_function(a,b)
+    ),
+     dcc.Graph(
+        id='example-graph1',
+        figure=bar_function(c,b)
+    ),
+     dcc.Graph(
+        id='example-graph2',
+        figure=line_function(c,b)
+    )
+
+])
+
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
