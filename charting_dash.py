@@ -47,15 +47,15 @@ app.layout = html.Div([
         multiple=True
     ),
 
-    # html.Label('Select columns to graph'),
+    html.Label('Select columns to graph:'),
 
-    # dcc.Checklist(id='output-column-upload',
-    #              labelStyle = dict(display='inline')),
+    dcc.Checklist(id='output-column-upload',
+                 labelStyle = dict(display='inline')),
 
     # dcc.Graph(id='Mygraph'),
     html.Div(id='output-data-upload'),
-
-    html.Div(id='datatable-interactivity-container')
+    # html.Div(id='user_data', style={'display': 'none'}),
+    # html.Div(id='datatable-interactivity-container')
 ])
 
 
@@ -85,8 +85,10 @@ def parse_data(contents, filename):
 
 @app.callback(
                 Output('output-data-upload', 'children'),
-                # Output('output-column-upload', 'options')
-                
+            # [
+            #     Output('output-data-upload', 'children'),
+            #     Output('output-column-upload', 'options')
+            #     ],
             [
                 Input('upload-data', 'contents'),
                 Input('upload-data', 'filename')
@@ -102,7 +104,7 @@ def update_table(contents, filename):
         table = html.Div([
             html.H5(filename),
             dash_table.DataTable(
-                # id='user_data',
+                id='user_data',
                 data=df.to_dict('rows'),
                 columns=[{'name': i, 'id': i, "selectable": True} for i in df.columns],
                 fixed_rows={ 'headers': True, 'data': 0 },
@@ -123,7 +125,7 @@ def update_table(contents, filename):
         ])
 
         # column_head = [{'label': i, 'value': i} for i in df.columns]
-    # return [table, column_head]
+    # return table, column_head
     return table
 
 def create_conditional_style(df):
@@ -136,10 +138,26 @@ def create_conditional_style(df):
 
     return style
 
+# @app.callback(
+#                 Output('output-column-upload', 'value')
+#                 ,
+#                 Input('output-column-upload', 'options')
+#             )
+# def set_checks_value(available_options):
+#     return available_options[0]['value']
+
+@app.callback(
+                Output('output-column-upload', 'options')
+                ,
+                Input('output-data-upload', 'children')
+            )
+def set_checks_value(available_options):
+    return available_options[0]['value']
+
 
 # @app.callback(
 #     Output('datatable-interactivity-container', "children"),
-#     [Input('output-data-upload', "selected_columns"),
+#     [Input('user_data', 'selected_columns'),
 #      Input('output-data-upload', "derived_virtual_selected_columns")])
 # def update_graphs(columns, derived_virtual_selected_columns):
 #     # When the table is first rendered, `derived_virtual_data` and
@@ -183,9 +201,9 @@ def create_conditional_style(df):
 #             },
 #         )
 #         # check if column exists - user may have deleted it
-#         # If `column.deletable=False`, then you don't
-#         # need to do this check.
-#     #     for column in ["pop", "lifeExp", "gdpPercap"] if column in dff
+# #         # If `column.deletable=False`, then you don't
+# #         # need to do this check.
+# #     #     for column in ["pop", "lifeExp", "gdpPercap"] if column in dff
 #     ]
 
 if __name__ == '__main__':

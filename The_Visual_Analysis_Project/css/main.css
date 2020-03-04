@@ -31,4 +31,7 @@ ul.my-list-style-no-bullet {
   list-style-type: none;
   }
 
+  iframe {
+    height: 80vh;
+    }
   
