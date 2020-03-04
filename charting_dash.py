@@ -84,11 +84,11 @@ def parse_data(contents, filename):
     return df
 
 @app.callback(
+                # Output('output-data-upload', 'children'),
+            [
                 Output('output-data-upload', 'children'),
-            # [
-            #     Output('output-data-upload', 'children'),
-            #     Output('output-column-upload', 'options')
-            #     ],
+                Output('output-column-upload', 'options')
+                ],
             [
                 Input('upload-data', 'contents'),
                 Input('upload-data', 'filename')
@@ -124,9 +124,9 @@ def update_table(contents, filename):
             ),
         ])
 
-        # column_head = [{'label': i, 'value': i} for i in df.columns]
-    # return table, column_head
-    return table
+        column_head = [{'label': i, 'value': i} for i in df.columns]
+    return table, column_head
+    # return table
 
 def create_conditional_style(df):
     style=[]
@@ -146,13 +146,13 @@ def create_conditional_style(df):
 # def set_checks_value(available_options):
 #     return available_options[0]['value']
 
-@app.callback(
-                Output('output-column-upload', 'options')
-                ,
-                Input('output-data-upload', 'children')
-            )
-def set_checks_value(available_options):
-    return available_options[0]['value']
+# @app.callback(
+#                 Output('output-column-upload', 'options')
+#                 ,
+#                 Input('output-data-upload', 'children')
+#             )
+# def set_checks_value(available_options):
+#     return available_options[0]['value']
 
 
 # @app.callback(
