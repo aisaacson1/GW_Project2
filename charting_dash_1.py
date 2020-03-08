@@ -8,7 +8,7 @@ import dash_html_components as html
 import base64
 import datetime
 import io
-import cufflinks as cf
+# import cufflinks as cf
 import dash_table
 from dash.dependencies import Input, Output, State
 import chart_library as cl
