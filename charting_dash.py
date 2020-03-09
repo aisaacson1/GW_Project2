@@ -12,6 +12,7 @@ import dash_table
 import dash_bootstrap_components as dbc
 
 import pandas as pd
+import itertools as it
 
 import chart_library as cl
 import decision_tree as dt
@@ -240,7 +241,7 @@ def create_dropdowns(selected_col):
                             # id="mydropdown-1",
                             className=i,
                             options = ddoptions,
-                            # persistence_type = 'session',
+                            persistence_type = 'memory',
                             persistence = True
                             )
                         ]
@@ -292,10 +293,12 @@ def update_columns(values):
 
 ##Call Back for 6 Columns
 @app.callback(
-                Output('dropdown-values6', 'values'),
+                Output('dropdown-values6', 'value'),
                 [
                 Input('submit-button', 'n_clicks'),
                 Input('choosen_columns_data', 'value'),
+                Input('upload-data', 'contents'),
+                Input('upload-data', 'filename')
                 # Input('mydropdown-1', 'className'),
                 # Input('mydropdown-1', 'value'),
                 # Input('mydropdown-2', 'className'),
@@ -327,13 +330,13 @@ def update_columns(values):
             )
 
 def update_columns6(n_clicks, ddvalues,
-                    **kwargs
-                    # dd1class, dd1value,
-                    # dd2class, dd2value,
-                    # dd3class, dd3value,
-                    # dd4class, dd4value,
-                    # dd5class, dd5value,
-                    # dd6class, dd6value, 
+                    contents, filename,
+                    dd1class, dd1value,
+                    dd2class, dd2value,
+                    dd3class, dd3value,
+                    dd4class, dd4value,
+                    dd5class, dd5value,
+                    dd6class, dd6value, 
                     ):
 
     if n_clicks < 1:
@@ -343,56 +346,81 @@ def update_columns6(n_clicks, ddvalues,
     else:
         list1 = []
         list2 = []
-        for i in kwargs:
-            list1.append(dd1class)
-            list1.append(dd2class)
-            list1.append(dd3class)
-            list1.append(dd4class)
-            list1.append(dd5class)
-            list1.append(dd6class)
+        
+        list1.append(dd1class)
+        list1.append(dd2class)
+        list1.append(dd3class)
+        list1.append(dd4class)
+        list1.append(dd5class)
+        list1.append(dd6class)
 
-        for i in kwargs:
-            list2.append(dd1value)
-            list2.append(dd2value)
-            list2.append(dd3value)
-            list2.append(dd4value)
-            list2.append(dd5value)
-            list2.append(dd6value)
+
+        list2.append(dd1value)
+        list2.append(dd2value)
+        list2.append(dd3value)
+        list2.append(dd4value)
+        list2.append(dd5value)
+        list2.append(dd6value)
 
         zipped = zip(list1, list2)
+        d = dict(zipped)
 
 
-        print("-----------------------------")
-        print(ddvalues)
-        print("--------6 Columns-------------")
-        print("-----------------------------")
-        print(f"6Column: {dd1class} has a {dd1value} data type")
-        print("-----------------------------")
-        print(f"6Column: {dd2class} has a {dd2value} data type")
-        print("-----------------------------")
-        print(f"6Column: {dd3class} has a {dd3value} data type")
-        print("-----------------------------")
-        print(f"6Column: {dd4class} has a {dd4value} data type")
-        print("-----------------------------")
-        print(f"6Column: {dd5class} has a {dd5value} data type")
-        print("-----------------------------")
-        print(f"6Column: {dd6class} has a {dd6value} data type")
-        print("-list1-------------------------")
-        print(list1)
-        print("-list2----------------------------")
-        print(list2)
-        print("-zipped----------------------------")
-        print(zipped)
-        print("-kwargs----------------------------")
-        print(kwargs)
-        print("-**kwargs----------------------------")
-        print(**kwargs)
-        print("--------6 Columns-------------")
+        all_pairs = [{j: d[j] for j in i} for i in it.combinations(d, 2)]
+
+        data_pairsv = []
+        data_pairsk = []
+        data_pairsv1 = []
+        data_pairsk1 = []
 
 
+        for p in all_pairs:
+            print(list(p.values()))
+            data_pairsv.append(list(p.values()))
+
+        for p in all_pairs:
+            print(list(p.keys()))
+            data_pairsk.append(list(p.keys()))
+
+        for v in data_pairsv:
+            data_pairsv1.append('vs'.join(v))
+
+        for k in data_pairsk:
+            data_pairsk1.append('vs'.join(k))
+
+        zippedpairs = zip(data_pairsk1, data_pairsv1)
+        finalpairs = dict(zippedpairs)
         
 
-        return ddvalues
+        # print("-----------------------------")
+        # print(ddvalues)
+        # print("--------6 Columns-------------")
+        # print("-----------------------------")
+        # print(f"6Column: {dd1class} has a {dd1value} data type")
+        # print("-----------------------------")
+        # print(f"6Column: {dd2class} has a {dd2value} data type")
+        # print("-----------------------------")
+        # print(f"6Column: {dd3class} has a {dd3value} data type")
+        # print("-----------------------------")
+        # print(f"6Column: {dd4class} has a {dd4value} data type")
+        # print("-----------------------------")
+        # print(f"6Column: {dd5class} has a {dd5value} data type")
+        # print("-----------------------------")
+        # print(f"6Column: {dd6class} has a {dd6value} data type")
+        # print("-list1-------------------------")
+        # print(list1)
+        # print("-list2----------------------------")
+        # print(list2)
+        # print("-zipped----------------------------")
+        # print(list(zipped))
+        # print("-----------------------------")
+        # print(d)
+        print("-----------------------------")
+        print(all_pairs)
+        print("-----------------------------")
+        print(finalpairs)
+
+        return html.Label(all_pairs)
 
 # ##Call Back for 5 Columns
 # @app.callback(
