@@ -18,6 +18,10 @@ import chart_library as cl
 url="https://gwprojectflask.herokuapp.com/api/data/raw_results"
 df = pd.read_json(url)
 
+# df = pd.read_csv("C:\Users\Aaron\Documents\GW_Data_Course\AIsaacson_GW_HW\GW_Project2_aji\sources\Quiz_results_test.csv", encoding="UTF-8")
+
+
+
 a=df['Data_Type']
 c=df['Chart_Type']
 b=df['Correct']

@@ -55,7 +55,7 @@ def bar_function(x,y):
         )],
 
     'layout' : dict(
-        title = '<b>Plotly Aggregations</b><br>use dropdown to change aggregation',
+        title = f'<b>{x.name} vs {y.name}</b><br>use dropdown to change aggregation',
         xaxis = dict(title = x.name),
         yaxis = dict(title = y.name),
         updatemenus = [dict(
@@ -103,7 +103,7 @@ def line_function(x,y):
         )],
 
     'layout' : dict(
-        title = '<b>Plotly Aggregations</b><br>use dropdown to change aggregation',
+        title = f'<b>{x.name} vs {y.name}</b><br>use dropdown to change aggregation',
         xaxis = dict(title = 'Column A Header'),
         yaxis = dict(title = 'Column B Header'),
         updatemenus = [dict(
@@ -193,7 +193,7 @@ def bubble_function(x,y):
         )],
 
     'layout' : dict(
-        title = '<b>Plotly Aggregations</b><br>use dropdown to change aggregation',
+        title = f'<b>{x.name} vs {y.name}</b><br>use dropdown to change aggregation',
         xaxis = dict(title = 'Column A Header'),
         yaxis = dict(title = 'Column B Header'),
         updatemenus = [dict(
@@ -257,7 +257,7 @@ def scatter_function(x,y):
         )],
 
     'layout' : dict(
-        title = '<b>Plotly Aggregations</b><br>use dropdown to change aggregation',
+        title = f'<b>{x.name} vs {y.name}</b><br>use dropdown to change aggregation',
         xaxis = dict(title = 'Column A Header'),
         yaxis = dict(title = 'Column B Header'),
         updatemenus = [dict(
