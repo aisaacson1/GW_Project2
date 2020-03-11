@@ -1,34 +1,92 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+#pip install flask-cors
+
+#pip install boto3
+
+import os
+import pandas as pd
+import sqlalchemy
+import pymysql
+import sys
+from pandas.io.json import json_normalize
+pymysql.install_as_MySQLdb()
+import chardet
+
+#import dash dependencies
 import base64
 import datetime
 import io
 import plotly.graph_objs as go
 import cufflinks as cf
-# import numpy as np
-
 import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 import dash_bootstrap_components as dbc
-
-import pandas as pd
-import itertools as it
-
 import chart_library as cl
+import itertools as it
 import decision_tree as dt
-
+import flask
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+#Importing additional elemtns for S3 self signed URL generation
+from flask import Flask, render_template, request, redirect, url_for
+#change
+#Import JSON library and Amazon BOTO3 SDK library for Python
+import json, boto3
+from sqlalchemy import create_engine
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from flask import (
+    Flask,
+    render_template,
+    jsonify,
+    request)
+from flask_cors import CORS
+from sqlalchemy import create_engine
+
+
+#Keep config file for our info. 
+remote_db_endpoint = os.environ.get('remote_db_endpoint')
+remote_db_port = os.environ.get('remote_db_port')
+remote_gwsis_dbname = os.environ.get('remote_gwsis_dbname')
+remote_gwsis_dbpwd = os.environ.get('remote_gwsis_dbpwd')
+remote_gwsis_dbuser = os.environ.get('remote_gwsis_dbuser')
+
+
+#from config import remote_db_endpoint, remote_db_port
+#from config import remote_gwsis_dbname, remote_gwsis_dbuser, remote_gwsis_dbpwd
+
+
+#Create Cloud DB Connection. 
+engine = create_engine(f"mysql+pymysql://{remote_gwsis_dbuser}:{remote_gwsis_dbpwd}@{remote_db_endpoint}:{remote_db_port}/{remote_gwsis_dbname}")
+
+# Create remote DB connection.
+conn = engine.connect()
+app = flask.Flask(__name__)
+CORS(app)
+
+server = flask.Flask(__name__)
+
+@server.route('/')
+def index():
+    return 'Hello Flask app'
+
 
 app = dash.Dash(__name__,
                 external_stylesheets=external_stylesheets,
+                routes_pathname_prefix='/dash/',
+                server =server,
                 meta_tags=[{
                     'name': 'viewport',
                     'content': 'width=device-width, initial-scale=1.0'
                     }]
                 )
 
-server = app.server
+# server = app.server
 
 app.config['suppress_callback_exceptions'] = True
 
@@ -98,6 +156,12 @@ app.layout = html.Div([
 
     dcc.Store(id='complete-df'),
 
+    # html.Div(id ='mydropdown-1', style = {'display': 'none'}),
+    # html.Div(id ='mydropdown-2', style = {'display': 'none'}),
+    # html.Div(id ='mydropdown-3', style = {'display': 'none'}),
+    # html.Div(id ='mydropdown-4', style = {'display': 'none'}),
+    # html.Div(id ='mydropdown-5', style = {'display': 'none'}),
+    # html.Div(id ='mydropdown-6', style = {'display': 'none'}),
 
     # html.Div(id='display-selected-values'),
     html.Br(),
@@ -106,14 +170,6 @@ app.layout = html.Div([
     html.Div(id='choosen_columns_data'),
     html.Br(),
     html.Div(id='submit_button'),
-
-    # html.Label(id ='mydropdown-1', style = {'display': 'none'}),
-    # html.Label(id ='mydropdown-2', style = {'display': 'none'}),
-    # html.Label(id ='mydropdown-3', style = {'display': 'none'}),
-    # html.Label(id ='mydropdown-4', style = {'display': 'none'}),
-    # html.Label(id ='mydropdown-5', style = {'display': 'none'}),
-    # html.Label(id ='mydropdown-6', style = {'display': 'none'}),
-
     html.Br(),
     html.Label(id='dropdown-values2'),
     html.Label(id='dropdown-values3'),
@@ -337,37 +393,18 @@ def update_columns(values):
                 Input('complete-df', 'data'),
                 ],
                 [
-                    # State('submit_button', 'n_clicks'),
-                # try:
-                    State('mydropdown-1', 'className'),
-                    State('mydropdown-1', 'value'),
-                # except:
-                #     pass
-                # try:
-                    State('mydropdown-2', 'className'),
-                    State('mydropdown-2', 'value'),
-                # except:
-                #     pass
-                # try:
-                    State('mydropdown-3', 'className'),
-                    State('mydropdown-3', 'value'),
-                # except:
-                #     pass
-                # try:
-                    State('mydropdown-4', 'className'),
-                    State('mydropdown-4', 'value'),
-                # except:
-                #     pass
-                # try:
-                    State('mydropdown-5', 'className'),
-                    State('mydropdown-5', 'value'),
-                # except:
-                #     pass
-                # try:
-                    State('mydropdown-6', 'className'),
-                    State('mydropdown-6', 'value'),
-                # except:
-                #     pass
+                State('mydropdown-1', 'className'),
+                State('mydropdown-1', 'value'),
+                State('mydropdown-2', 'className'),
+                State('mydropdown-2', 'value'),
+                State('mydropdown-3', 'className'),
+                State('mydropdown-3', 'value'),
+                State('mydropdown-4', 'className'),
+                State('mydropdown-4', 'value'),
+                State('mydropdown-5', 'className'),
+                State('mydropdown-5', 'value'),
+                State('mydropdown-6', 'className'),
+                State('mydropdown-6', 'value'),
                 ]
             )
 
@@ -1122,5 +1159,5 @@ def update_columns2(n_clicks, ddvalues,
         
 
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+
+
