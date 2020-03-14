@@ -30,6 +30,8 @@ import chart_library as cl
 import itertools as it
 import decision_tree as dt
 import flask
+import string
+import secrets
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 #Importing additional elemtns for S3 self signed URL generation
@@ -46,7 +48,6 @@ from flask import (
     jsonify,
     request)
 from flask_cors import CORS
-from sqlalchemy import create_engine
 
 
 #Keep config file for our info. 
@@ -57,15 +58,10 @@ remote_gwsis_dbpwd = os.environ.get('remote_gwsis_dbpwd')
 remote_gwsis_dbuser = os.environ.get('remote_gwsis_dbuser')
 
 
-#from config import remote_db_endpoint, remote_db_port
-#from config import remote_gwsis_dbname, remote_gwsis_dbuser, remote_gwsis_dbpwd
-
-
 #Create Cloud DB Connection. 
 engine = create_engine(f"mysql+pymysql://{remote_gwsis_dbuser}:{remote_gwsis_dbpwd}@{remote_db_endpoint}:{remote_db_port}/{remote_gwsis_dbname}")
-
-# Create remote DB connection.
 conn = engine.connect()
+
 app = flask.Flask(__name__)
 CORS(app)
 
@@ -74,6 +70,18 @@ server = flask.Flask(__name__)
 @server.route('/')
 def index():
     return 'Hello Flask app'
+
+@server.route('/postfeedback', methods = ['POST'])
+def postFeedbackHandler(feedback1):
+
+    print(feedback1)
+    print('sql started')
+    
+    #write feedback.df to SQL 
+    feedback1.to_sql(con=conn, name='survey_results', if_exists='append', index=False)
+    #session.commit()
+    print('sql fired')
+    return None
 
 
 app = dash.Dash(__name__,
@@ -105,6 +113,286 @@ colors = {
     "background": "#ffffff",
     "text": "#000000"
 }
+
+def generateSecureRandomString(stringLength=50):
+    """Generate a secure random string of letters, digits and special characters """
+    password_characters = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(password_characters) for i in range(stringLength))
+
+def graph_maker(df,pairs):
+
+    charts = []
+
+    chartnum = 0
+
+    for k,v in pairs.items():
+        gcol = k.split('vs')
+        xcol = gcol[0]
+        ycol = gcol[1]
+        try:
+            zcol = gcol[2]
+        except:
+            None
+        xval = df[xcol]
+        yval = df[ycol]
+        try:
+            zval = df[zcol]
+        except:
+            None
+        chartnum+=1
+        if v[0] == "Bar":
+            charts.append(html.Div([
+                    dcc.Graph(id=f'auto-graph{chartnum}',
+                    figure=cl.bar_function(xval,yval)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+
+                    ])
+                    )
+        elif v[0] == "Map":
+            charts.append(html.Div([
+                    dcc.Graph(id=f'auto-graph{chartnum}',
+                    figure=cl.map_function(xval,yval,zval)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+                    ]))
+        elif v[0] == "Rings":
+            charts.append(html.Div([
+                    dcc.Graph(id=f'auto-graph{chartnum}',
+                    figure=cl.rings_function(xval,yval)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+                    ]))
+        elif v[0] == "Bubble":
+            charts.append(html.Div([
+                    dcc.Graph(id=f'auto-graph{chartnum}',
+                    figure=cl.bubble_function(xval,yval)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+                    ]))
+        elif v[0] == "Table":
+            charts.append(html.Div([
+                    html.Div(id=f'auto-graph{chartnum}',
+                    children=cl.chart_function(xval,df)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+                    ]))
+        elif v[0] == "Scatter":
+            charts.append(html.Div([
+                    dcc.Graph(id=f'auto-graph{chartnum}',
+                    figure=cl.scatter_function(xval,yval)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+                    ]))
+        elif v[0] == "Pie":
+            charts.append(html.Div([
+                    dcc.Graph(id=f'auto-graph{chartnum}',
+                    figure=cl.pie_function(xval,yval)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+                    ]))
+        elif v[0] == "Line":
+            charts.append(html.Div([
+                    dcc.Graph(id=f'auto-graph{chartnum}',
+                    figure=cl.line_function(xval,yval)),
+                    html.Label("Does the above chart show what you wanted?"),
+                    dcc.RadioItems(
+                        id=f'auto-graph-radio{chartnum}',
+                        options=[
+                            {'label': 'Yes', 'value': f'y,{v[0]},{v[1]}'},
+                            {'label': 'No', 'value': f'n,{v[0]},{v[1]}'}
+                        ],
+                        labelStyle={'display': 'inline-block'})
+                    # html.Button(id=f'auto-graph-button{chartnum}',
+                    # n_clicks=0,
+                    # children='Download PNG')
+                    ]))
+    return charts
+
+def feedback_maker(a):
+    if a == "CATvsVAL":
+        a = 'categoryvsvalue'
+    elif a == "CATvsLATvsLON":
+        a = 'categoryvslatvslon'
+    elif a == "LOCvsVAL":
+        a = 'valuevslocation'
+    elif a == "DTEvsVAL":
+        a = 'valuevstime'
+    elif a == "VALvsVAL":
+        a = 'valuevsvalue'
+    elif a == "VALvsBOL" or v == "CATvsBOL":
+        a = 'comparison'
+    return a
+
+def decision_func(d):
+    all_pairs3 = [{j: d[j] for j in i} for i in it.permutations(d, 3)]
+    all_pairs2 = [{j: d[j] for j in i} for i in it.permutations(d, 2)]
+        
+
+    data_pairsv = []
+    data_pairsk = []
+    data_pairsv1 = []
+    data_pairsk1 = []
+
+
+    for p in all_pairs2:
+        data_pairsv.append(list(p.values()))
+
+    for p in all_pairs2:
+        data_pairsk.append(list(p.keys()))
+
+    for p in all_pairs3:
+        data_pairsv.append(list(p.values()))
+
+    for p in all_pairs3:
+        data_pairsk.append(list(p.keys()))
+
+    for v in data_pairsv:
+        data_pairsv1.append('vs'.join(v))
+
+    for k in data_pairsk:
+        data_pairsk1.append('vs'.join(k))
+
+    zippedpairs = zip(data_pairsk1, data_pairsv1)
+    fp = dict(zippedpairs)
+
+    for k,v in fp.items():
+        vlist = []
+        if v == "CATvsVAL":
+            a = dt.decision([1,1,0,0,0,0])
+        elif v == "CATvsLATvsLON":
+            # a = dt.decision([1,0,0,1,0,0])
+            a = ['Map']
+        elif v == "LOCvsVAL":
+            a = dt.decision([1,0,0,1,0,0])
+        elif v == "DTEvsVAL":
+            a = dt.decision([1,0,0,0,1,0])
+        elif v == "VALvsVAL":
+            a = dt.decision([1,0,0,0,0,1])
+        elif v == "VALvsBOL" or v == "CATvsBOL":
+            a = dt.decision([1,0,1,0,0,0])
+        else:
+            a = "None"
+        vlist.append(a[0])
+        vlist.append(v)
+        fp[k] = vlist
+
+    print(fp)
+
+    for k,v in list(fp.items()):
+        if v[0] == "N":
+            del fp[k]   
+
+    return fp
+
+def feedback_func(rvalue):
+
+    try:
+        if len(rvalue) is None:
+            print("radio empty")
+            return []
+        else:
+            
+            radioval=rvalue.split(',')
+
+            datatype = feedback_maker(radioval[2])
+
+            if radioval[0] == 'y':
+                feedback = dict(
+                    Survey_ID=generateSecureRandomString(),
+                    value='feedbk',
+                    Data_Type=datatype,
+                    Chart_Type=radioval[1],
+                    Correct=1
+                    )
+                feedback = pd.DataFrame([feedback])
+                feedback = feedback.reindex(columns=["Survey_ID", "value", "Data_Type", "Chart_Type", "Correct"])
+                print(feedback)
+                
+
+            elif radioval[0] == 'n':
+                feedback = dict(
+                    Survey_ID=generateSecureRandomString(),
+                    value='feedbk',
+                    Data_Type=datatype,
+                    Chart_Type=radioval[1],
+                    Correct=0
+                    )
+                feedback = pd.DataFrame([feedback])
+                feedback = feedback.reindex(columns=["Survey_ID", "value", "Data_Type", "Chart_Type", "Correct"])
+                print(feedback)
+                
+
+            # return None
+            return postFeedbackHandler(feedback)
+    except:
+        None
+
+
+####start dash app scripting#####
 
 app.layout = html.Div([
     dcc.Upload(
@@ -146,7 +434,8 @@ app.layout = html.Div([
     dcc.Checklist(id='column-checklist',
                     labelStyle = {
                         'display': 'inline-block',
-                        'marginRight': 10
+                        'marginRight': 10,
+                        'value':[]
                         }),
 
     # dcc.Graph(id='Mygraph'),
@@ -156,12 +445,6 @@ app.layout = html.Div([
 
     dcc.Store(id='complete-df'),
 
-    # html.Div(id ='mydropdown-1', style = {'display': 'none'}),
-    # html.Div(id ='mydropdown-2', style = {'display': 'none'}),
-    # html.Div(id ='mydropdown-3', style = {'display': 'none'}),
-    # html.Div(id ='mydropdown-4', style = {'display': 'none'}),
-    # html.Div(id ='mydropdown-5', style = {'display': 'none'}),
-    # html.Div(id ='mydropdown-6', style = {'display': 'none'}),
 
     # html.Div(id='display-selected-values'),
     html.Br(),
@@ -170,11 +453,44 @@ app.layout = html.Div([
     html.Div(id='choosen_columns_data'),
     html.Br(),
     html.Div(id='submit_button'),
+
+    html.Label(id ='mydropdown-1'),
+    html.Label(id ='mydropdown-2'),
+    html.Label(id ='mydropdown-3'),
+    html.Label(id ='mydropdown-4'),
+    html.Label(id ='mydropdown-5'),
+    html.Label(id ='mydropdown-6'),
+
     html.Br(),
-    html.Label(id='dropdown-values2'),
-    html.Label(id='dropdown-values3'),
-    html.Label(id='dropdown-values4'),
-    html.Label(id='dropdown-values5'),
+    # html.Div(id='dropdown-values2', style = {'display': 'none'}),
+    # html.Div(id='dropdown-values3', style = {'display': 'none'}),
+    # html.Div(id='dropdown-values4', style = {'display': 'none'}),
+    # html.Div(id='dropdown-values5', style = {'display': 'none'}),
+    # html.Div(id='dropdown-values6', style = {'display': 'none'}),
+
+
+    html.Div(id='auto-graph-radio1-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio2-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio3-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio4-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio5-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio6-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio7-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio8-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio9-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio10-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio11-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio12-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio13-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio14-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio15-output', style = {'display': 'none'}),
+    html.Div(id='auto-graph-radio16-output', style = {'display': 'none'}),
+ 
+
+    html.Div(id='dropdown-values2'),
+    html.Div(id='dropdown-values3'),
+    html.Div(id='dropdown-values4'),
+    html.Div(id='dropdown-values5'),
     html.Div(id='dropdown-values6'),
     ])
 
@@ -310,9 +626,140 @@ def update_columns(col_value):
             print("df empty")
             return []
         else:
+            print(len(col_value))
             return [html.Label("Select the data type for each column:")]
     except:
         None
+
+
+
+# hide unused graph id's
+@app.callback(
+                
+                Output('dropdown-values2', 'style'),
+                [
+                Input('column-checklist', 'value'),
+                ],
+                [
+                State('dropdown-values2', 'style')    
+                ]
+            )
+
+def hide_ids2(col_values, current_style):
+
+    try: 
+        if len(col_values) == 2:
+            current_style['display'] = ''
+            print(f"{len(col_values)}s have been clicked display all 2")
+        else:
+            current_style['display'] = 'none'
+            print(f"{len(col_values)}s have been clicked dont display 2")
+        return current_style
+
+    except:
+        None
+
+# hide unused graph id's
+@app.callback(
+                Output('dropdown-values3', 'style'),
+                [
+                Input('column-checklist', 'value'),
+                ],
+                [
+                State('dropdown-values3', 'style')    
+                ]
+            )
+
+def hide_ids3(col_values, current_style):
+
+    try:
+        if len(col_values) == 3:
+            current_style['display'] = ''
+            print(f"{len(col_values)}s have been clicked display all 3")
+        else:
+            current_style['display'] = 'none'
+            print(f"{len(col_values)}s have been clicked dont display 3")
+        return current_style
+
+    except:
+        None
+
+# hide unused graph id's
+@app.callback(
+                Output('dropdown-values4', 'style'),
+                [
+                Input('column-checklist', 'value'),
+                ],
+                [
+                State('dropdown-values4', 'style')    
+                ]
+            )
+
+def hide_ids4(col_values, current_style):
+
+    try:
+        if len(col_values) == 4:
+            current_style['display'] = ''
+            print(f"{len(col_values)}s have been clicked display all 4")
+        else:
+            current_style['display'] = 'none'
+            print(f"{len(col_values)}s have been clicked dont display 4")
+        return current_style
+
+    except:
+        None
+
+# hide unused graph id's
+@app.callback(
+                Output('dropdown-values5', 'style'),
+                [
+                Input('column-checklist', 'value'),
+                ],
+                [
+                State('dropdown-values5', 'style')    
+                ]
+            )
+
+def hide_ids5(col_values, current_style):
+
+    try:
+        if len(col_values) == 5:
+            current_style['display'] = ''
+            print(f"{len(col_values)}s have been clicked display all 5")
+        else:
+            current_style['display'] = 'none'
+            print(f"{len(col_values)}s have been clicked dont display 5")
+        return current_style
+
+    except:
+        None
+
+
+# hide unused graph id's
+@app.callback(
+                Output('dropdown-values6', 'style'),
+                [
+                Input('column-checklist', 'value'),
+                ],
+                [
+                State('dropdown-values6', 'style')    
+                ]
+            )
+
+def hide_ids6(col_values, current_style):
+
+    try:
+        if len(col_values) == 6:
+            current_style['display'] = ''
+            print(f"{len(col_values)}s have been clicked display all 6")
+        else:
+            current_style['display'] = 'none'
+            print(f"{len(col_values)}s have been clicked dont display 6")
+        return current_style
+
+    except:
+        None
+
 
 # List selected columns with dropdowns for data type
 @app.callback(
@@ -328,11 +775,8 @@ def create_dropdowns(selected_col):
 
     x=0
     try:    
+        print(len(selected_col))
         for i in selected_col:
-            # if len(ddcreator) >= 0:
-            #     col_width = 100/len(ddcreator)
-            # else:
-            #     col_width = 25
             x+=1
             dd =html.Div(
                     html.Label(
@@ -375,13 +819,48 @@ def update_columns(values):
             print("df empty")
             return []
         else:
-            button = html.Button(id='submit-button',
+            button = html.Div([
+                    html.Button(id='submit-button',
                     n_clicks=0,
                     children='Submit'
-                    )
+                    ),
+                    # html.Button(id='refresh-button',
+                    # n_clicks=0,
+                    # children='Reset',
+                    # style={
+                    #     'marginRight': 10
+                    # }
+                    # )
+                ])
+
             return button
     except:
         None
+
+# ##reset page
+# @app.callback(
+#                 Output('reset_button', 'children'),
+#                 [
+#                 Input('refresh_button', 'n_clicks'),
+#                 ]
+#             )
+
+# def reset_page(
+#                     n_clicks,
+#                     ):
+
+#     try:
+#         if n_clicks < 1:
+#             print("reset button has not been clicked")
+#             return []
+
+#         else:
+#             reset = html.A('Refresh', href='/')
+
+#             return reset
+        
+#     except:
+#         None
 
 
 ##Call Back for 6 Columns
@@ -418,140 +897,51 @@ def update_columns6(
                     dd4class, dd4value,
                     dd5class, dd5value,
                     dd6class, dd6value,
-                    
+                    # *ddclass, **ddvalue,
                     ):
 
-    if n_clicks < 1:
-        print("no drop down values")
-        return []
+    try:
+        if n_clicks < 1:
+            print("no drop down values")
+            return []
 
-    else:
-        list1 = []
-        list2 = []
+        else:
+            list1 = []
+            list2 = []
+
+            # for i in ddclass:
+            #     list1.append(ddclass)
+
+            # print(list1)
+            
+            list1.append(dd1class)
+            list1.append(dd2class)
+            list1.append(dd3class)
+            list1.append(dd4class)
+            list1.append(dd5class)
+            list1.append(dd6class)
+
+
+            list2.append(dd1value)
+            list2.append(dd2value)
+            list2.append(dd3value)
+            list2.append(dd4value)
+            list2.append(dd5value)
+            list2.append(dd6value)
+
+            zipped = zip(list1, list2)
+            d = dict(zipped)
+
+            finalpairs = decision_func(d)
+
+            df = pd.read_json(dfdata)
+
+            charts = graph_maker(df,finalpairs)
+
+            return charts
         
-        list1.append(dd1class)
-        list1.append(dd2class)
-        list1.append(dd3class)
-        list1.append(dd4class)
-        list1.append(dd5class)
-        list1.append(dd6class)
-
-
-        list2.append(dd1value)
-        list2.append(dd2value)
-        list2.append(dd3value)
-        list2.append(dd4value)
-        list2.append(dd5value)
-        list2.append(dd6value)
-
-        zipped = zip(list1, list2)
-        d = dict(zipped)
-
-
-        all_pairs3 = [{j: d[j] for j in i} for i in it.permutations(d, 3)]
-        all_pairs2 = [{j: d[j] for j in i} for i in it.permutations(d, 2)]
-
-        # all_pairs3 = [{j: d[j] for j in i} for i in it.combinations(d, 3)]
-        # all_pairs2 = [{j: d[j] for j in i} for i in it.combinations(d, 2)]
-      
-
-        data_pairsv = []
-        data_pairsk = []
-        data_pairsv1 = []
-        data_pairsk1 = []
-
-
-        for p in all_pairs2:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs2:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for p in all_pairs3:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs3:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for v in data_pairsv:
-            data_pairsv1.append('vs'.join(v))
-
-        for k in data_pairsk:
-            data_pairsk1.append('vs'.join(k))
-
-        zippedpairs = zip(data_pairsk1, data_pairsv1)
-        finalpairs = dict(zippedpairs)
-
-        # print(finalpairs)
-        
-        for k,v in finalpairs.items():
-            if v == "CATvsVAL":
-                a = dt.decision([1,1,0,0,0,0])
-            elif v == "CATvsLATvsLON":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "LOCvsVAL":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "DTEvsVAL":
-                a = dt.decision([1,0,0,0,1,0])
-            elif v == "VALvsVAL":
-                a = dt.decision([1,0,0,0,0,1])
-            elif v == "VALvsBOL" or v == "CATvsBOL":
-                a = dt.decision([1,0,1,0,0,0])
-            else:
-                a = "None"
-            finalpairs[k] = a[0]
-
-        # print(finalpairs)
-
-        for k,v in list(finalpairs.items()):
-            if v == "N":
-                del finalpairs[k]            
-                    
-        print(finalpairs)
-
-        df = pd.read_json(dfdata)
-
-        charts = []
-
-        chartnum = 0
-
-        for k,v in finalpairs.items():
-            gcol = k.split('vs')
-            xcol = gcol[0]
-            ycol = gcol[1]
-            xval = df[xcol]
-            yval = df[ycol]
-            chartnum+=1
-            if v == "Bar":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bar_function(xval,yval)))
-            elif v == "Map":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.map_function(xval,yval)))
-            elif v == "Rings":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.rings_function(xval,yval)))
-            elif v == "Bubble":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bubble_function(xval,yval)))
-            elif v == "Table":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.table_function(xval,yval)))
-            elif v == "Scatter":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.scatter_function(xval,yval)))
-            elif v == "Pie":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.pie_function(xval,yval)))
-            elif v == "Line":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.line_function(xval,yval)))
-
-        return charts
+    except:
+        None
 
 # ##Call Back for 5 Columns
 @app.callback(
@@ -583,134 +973,41 @@ def update_columns5(n_clicks, ddvalues,
                     dd4class, dd4value,
                     dd5class, dd5value,
                     ):
+    try:
 
-    if n_clicks < 1:
-        print("no drop down values")
-        return []
+        if n_clicks < 1:
+            print("no drop down values")
+            return []
 
-    else:
-        list1 = []
-        list2 = []
-        
-        list1.append(dd1class)
-        list1.append(dd2class)
-        list1.append(dd3class)
-        list1.append(dd4class)
-        list1.append(dd5class)
+        else:
 
-        list2.append(dd1value)
-        list2.append(dd2value)
-        list2.append(dd3value)
-        list2.append(dd4value)
-        list2.append(dd5value)
+            list1 = []
+            list2 = []
+            
+            list1.append(dd1class)
+            list1.append(dd2class)
+            list1.append(dd3class)
+            list1.append(dd4class)
+            list1.append(dd5class)
 
-        zipped = zip(list1, list2)
-        d = dict(zipped)
+            list2.append(dd1value)
+            list2.append(dd2value)
+            list2.append(dd3value)
+            list2.append(dd4value)
+            list2.append(dd5value)
 
+            zipped = zip(list1, list2)
+            d = dict(zipped)
 
-        all_pairs3 = [{j: d[j] for j in i} for i in it.permutations(d, 3)]
-        all_pairs2 = [{j: d[j] for j in i} for i in it.permutations(d, 2)]
+            finalpairs = decision_func(d)
 
-        # all_pairs3 = [{j: d[j] for j in i} for i in it.combinations(d, 3)]
-        # all_pairs2 = [{j: d[j] for j in i} for i in it.combinations(d, 2)]
-      
+            df = pd.read_json(dfdata)
 
-        data_pairsv = []
-        data_pairsk = []
-        data_pairsv1 = []
-        data_pairsk1 = []
+            charts = graph_maker(df,finalpairs)
 
-
-        for p in all_pairs2:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs2:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for p in all_pairs3:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs3:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for v in data_pairsv:
-            data_pairsv1.append('vs'.join(v))
-
-        for k in data_pairsk:
-            data_pairsk1.append('vs'.join(k))
-
-        zippedpairs = zip(data_pairsk1, data_pairsv1)
-        finalpairs = dict(zippedpairs)
-        
-        for k,v in finalpairs.items():
-            if v == "CATvsVAL":
-                a = dt.decision([1,1,0,0,0,0])
-            elif v == "CATvsLATvsLON":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "LOCvsVAL":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "DTEvsVAL":
-                a = dt.decision([1,0,0,0,1,0])
-            elif v == "VALvsVAL":
-                a = dt.decision([1,0,0,0,0,1])
-            elif v == "VALvsBOL" or v == "CATvsBOL":
-                a = dt.decision([1,0,1,0,0,0])
-            else:
-                a = "None"
-            finalpairs[k] = a[0]
-
-        # print(finalpairs)
-
-        for k,v in list(finalpairs.items()):
-            if v == "N":
-                del finalpairs[k]            
-                    
-        print(finalpairs)
-
-        df = pd.read_json(dfdata)
-
-        charts = []
-
-        chartnum = 0
-
-        for k,v in finalpairs.items():
-            gcol = k.split('vs')
-            xcol = gcol[0]
-            ycol = gcol[1]
-            xval = df[xcol]
-            yval = df[ycol]
-            chartnum+=1
-            if v == "Bar":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bar_function(xval,yval)))
-            elif v == "Map":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.map_function(xval,yval)))
-            elif v == "Rings":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.rings_function(xval,yval)))
-            elif v == "Bubble":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bubble_function(xval,yval)))
-            elif v == "Table":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.table_function(xval,yval)))
-            elif v == "Scatter":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.scatter_function(xval,yval)))
-            elif v == "Pie":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.pie_function(xval,yval)))
-            elif v == "Line":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.line_function(xval,yval)))
-
-        return charts
-
+            return charts
+    except:
+        None
 
 # ##Call Back for 4 Columns
 @app.callback(
@@ -740,131 +1037,41 @@ def update_columns4(n_clicks, ddvalues,
                     dd4class, dd4value,
                     ):
 
-    if n_clicks < 1:
-        print("no drop down values")
-        return []
+    try:
+        if n_clicks < 1:
+            print("no drop down values")
+            return []
 
-    else:
-        list1 = []
-        list2 = []
-        
-        list1.append(dd1class)
-        list1.append(dd2class)
-        list1.append(dd3class)
-        list1.append(dd4class)
+        else:
 
+            list1 = []
+            list2 = []
+            
+            list1.append(dd1class)
+            list1.append(dd2class)
+            list1.append(dd3class)
+            list1.append(dd4class)
 
-        list2.append(dd1value)
-        list2.append(dd2value)
-        list2.append(dd3value)
-        list2.append(dd4value)
+            list2.append(dd1value)
+            list2.append(dd2value)
+            list2.append(dd3value)
+            list2.append(dd4value)
 
-        zipped = zip(list1, list2)
-        d = dict(zipped)
+            zipped = zip(list1, list2)
+            d = dict(zipped)
 
+            finalpairs = decision_func(d)
 
-        all_pairs3 = [{j: d[j] for j in i} for i in it.permutations(d, 3)]
-        all_pairs2 = [{j: d[j] for j in i} for i in it.permutations(d, 2)]
+            df = pd.read_json(dfdata)
 
-        # all_pairs3 = [{j: d[j] for j in i} for i in it.combinations(d, 3)]
-        # all_pairs2 = [{j: d[j] for j in i} for i in it.combinations(d, 2)]
-      
+            charts = graph_maker(df,finalpairs)
 
-        data_pairsv = []
-        data_pairsk = []
-        data_pairsv1 = []
-        data_pairsk1 = []
+            print('4 columns')
+            
+            return charts
 
-
-        for p in all_pairs2:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs2:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for p in all_pairs3:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs3:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for v in data_pairsv:
-            data_pairsv1.append('vs'.join(v))
-
-        for k in data_pairsk:
-            data_pairsk1.append('vs'.join(k))
-
-        zippedpairs = zip(data_pairsk1, data_pairsv1)
-        finalpairs = dict(zippedpairs)
-        
-        for k,v in finalpairs.items():
-            if v == "CATvsVAL":
-                a = dt.decision([1,1,0,0,0,0])
-            elif v == "CATvsLATvsLON":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "LOCvsVAL":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "DTEvsVAL":
-                a = dt.decision([1,0,0,0,1,0])
-            elif v == "VALvsVAL":
-                a = dt.decision([1,0,0,0,0,1])
-            elif v == "VALvsBOL" or v == "CATvsBOL":
-                a = dt.decision([1,0,1,0,0,0])
-            else:
-                a = "None"
-            finalpairs[k] = a[0]
-
-        # print(finalpairs)
-
-        for k,v in list(finalpairs.items()):
-            if v == "N":
-                del finalpairs[k]            
-                    
-        print(finalpairs)
-
-        df = pd.read_json(dfdata)
-
-        charts = []
-
-        chartnum = 0
-
-        for k,v in finalpairs.items():
-            gcol = k.split('vs')
-            xcol = gcol[0]
-            ycol = gcol[1]
-            xval = df[xcol]
-            yval = df[ycol]
-            chartnum+=1
-            if v == "Bar":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bar_function(xval,yval)))
-            elif v == "Map":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.map_function(xval,yval)))
-            elif v == "Rings":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.rings_function(xval,yval)))
-            elif v == "Bubble":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bubble_function(xval,yval)))
-            elif v == "Table":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.table_function(xval,yval)))
-            elif v == "Scatter":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.scatter_function(xval,yval)))
-            elif v == "Pie":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.pie_function(xval,yval)))
-            elif v == "Line":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.line_function(xval,yval)))
-
-        return charts
+    except:
+        None
 
 # ##Call Back for 3 Columns
 @app.callback(
@@ -891,128 +1098,39 @@ def update_columns3(n_clicks, ddvalues,
                     dd3class, dd3value,
                     ):
 
-    if n_clicks < 1:
-        print("no drop down values")
-        return []
+    try:
+        if n_clicks < 1:
+            print("no drop down values")
+            return []
 
-    else:
-        list1 = []
-        list2 = []
-        
-        list1.append(dd1class)
-        list1.append(dd2class)
-        list1.append(dd3class)
+        else:
 
-        list2.append(dd1value)
-        list2.append(dd2value)
-        list2.append(dd3value)
+            list1 = []
+            list2 = []
+            
+            list1.append(dd1class)
+            list1.append(dd2class)
+            list1.append(dd3class)
 
-        zipped = zip(list1, list2)
-        d = dict(zipped)
+            list2.append(dd1value)
+            list2.append(dd2value)
+            list2.append(dd3value)
 
+            zipped = zip(list1, list2)
+            d = dict(zipped)
 
-        all_pairs3 = [{j: d[j] for j in i} for i in it.permutations(d, 3)]
-        all_pairs2 = [{j: d[j] for j in i} for i in it.permutations(d, 2)]
+            finalpairs = decision_func(d)
 
-        # all_pairs3 = [{j: d[j] for j in i} for i in it.combinations(d, 3)]
-        # all_pairs2 = [{j: d[j] for j in i} for i in it.combinations(d, 2)]
-      
+            df = pd.read_json(dfdata)
 
-        data_pairsv = []
-        data_pairsk = []
-        data_pairsv1 = []
-        data_pairsk1 = []
+            charts = graph_maker(df,finalpairs)
 
+            print('3 columns')
 
-        for p in all_pairs2:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
+            return charts
 
-        for p in all_pairs2:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for p in all_pairs3:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs3:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for v in data_pairsv:
-            data_pairsv1.append('vs'.join(v))
-
-        for k in data_pairsk:
-            data_pairsk1.append('vs'.join(k))
-
-        zippedpairs = zip(data_pairsk1, data_pairsv1)
-        finalpairs = dict(zippedpairs)
-        
-        for k,v in finalpairs.items():
-            if v == "CATvsVAL":
-                a = dt.decision([1,1,0,0,0,0])
-            elif v == "CATvsLATvsLON":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "LOCvsVAL":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "DTEvsVAL":
-                a = dt.decision([1,0,0,0,1,0])
-            elif v == "VALvsVAL":
-                a = dt.decision([1,0,0,0,0,1])
-            elif v == "VALvsBOL" or v == "CATvsBOL":
-                a = dt.decision([1,0,1,0,0,0])
-            else:
-                a = "None"
-            finalpairs[k] = a[0]
-
-        # print(finalpairs)
-
-        for k,v in list(finalpairs.items()):
-            if v == "N":
-                del finalpairs[k]            
-                    
-        print(finalpairs)
-
-        df = pd.read_json(dfdata)
-
-        charts = []
-
-        chartnum = 0
-
-        for k,v in finalpairs.items():
-            gcol = k.split('vs')
-            xcol = gcol[0]
-            ycol = gcol[1]
-            xval = df[xcol]
-            yval = df[ycol]
-            chartnum+=1
-            if v == "Bar":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bar_function(xval,yval)))
-            elif v == "Map":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.map_function(xval,yval)))
-            elif v == "Rings":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.rings_function(xval,yval)))
-            elif v == "Bubble":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bubble_function(xval,yval)))
-            elif v == "Table":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.table_function(xval,yval)))
-            elif v == "Scatter":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.scatter_function(xval,yval)))
-            elif v == "Pie":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.pie_function(xval,yval)))
-            elif v == "Line":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.line_function(xval,yval)))
-
-        return charts
+    except:
+        None
 
 # ##Call Back for 2 Columns
 @app.callback(
@@ -1036,128 +1154,277 @@ def update_columns2(n_clicks, ddvalues,
                     dd2class, dd2value,                    
                     ):
 
-    if n_clicks < 1:
-        print("no drop down values")
-        return []
+    try:
+        if n_clicks < 1:
+            print("no drop down values")
+            return []
 
-    else:
-        list1 = []
-        list2 = []
-        
-        list1.append(dd1class)
-        list1.append(dd2class)
+        else:
 
-        list2.append(dd1value)
-        list2.append(dd2value)
+            list1 = []
+            list2 = []
+            
+            list1.append(dd1class)
+            list1.append(dd2class)
 
-        zipped = zip(list1, list2)
-        d = dict(zipped)
+            list2.append(dd1value)
+            list2.append(dd2value)
 
+            zipped = zip(list1, list2)
+            d = dict(zipped)
 
-        all_pairs3 = [{j: d[j] for j in i} for i in it.permutations(d, 3)]
-        all_pairs2 = [{j: d[j] for j in i} for i in it.permutations(d, 2)]
+            finalpairs = decision_func(d)
 
-        # all_pairs3 = [{j: d[j] for j in i} for i in it.combinations(d, 3)]
-        # all_pairs2 = [{j: d[j] for j in i} for i in it.combinations(d, 2)]
-      
+            df = pd.read_json(dfdata)
 
-        data_pairsv = []
-        data_pairsk = []
-        data_pairsv1 = []
-        data_pairsk1 = []
+            charts = graph_maker(df,finalpairs)
 
+            print('----------------')
+            print('2 Columns')
+            print('----------------')
 
-        for p in all_pairs2:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
+            return charts
 
-        for p in all_pairs2:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for p in all_pairs3:
-            # print(list(p.values()))
-            data_pairsv.append(list(p.values()))
-
-        for p in all_pairs3:
-            # print(list(p.keys()))
-            data_pairsk.append(list(p.keys()))
-
-        for v in data_pairsv:
-            data_pairsv1.append('vs'.join(v))
-
-        for k in data_pairsk:
-            data_pairsk1.append('vs'.join(k))
-
-        zippedpairs = zip(data_pairsk1, data_pairsv1)
-        finalpairs = dict(zippedpairs)
-        
-        for k,v in finalpairs.items():
-            if v == "CATvsVAL":
-                a = dt.decision([1,1,0,0,0,0])
-            elif v == "CATvsLATvsLON":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "LOCvsVAL":
-                a = dt.decision([1,0,0,1,0,0])
-            elif v == "DTEvsVAL":
-                a = dt.decision([1,0,0,0,1,0])
-            elif v == "VALvsVAL":
-                a = dt.decision([1,0,0,0,0,1])
-            elif v == "VALvsBOL" or v == "CATvsBOL":
-                a = dt.decision([1,0,1,0,0,0])
-            else:
-                a = "None"
-            finalpairs[k] = a[0]
-
-        # print(finalpairs)
-
-        for k,v in list(finalpairs.items()):
-            if v == "N":
-                del finalpairs[k]            
-                    
-        print(finalpairs)
-
-        df = pd.read_json(dfdata)
-
-        charts = []
-
-        chartnum = 0
-
-        for k,v in finalpairs.items():
-            gcol = k.split('vs')
-            xcol = gcol[0]
-            ycol = gcol[1]
-            xval = df[xcol]
-            yval = df[ycol]
-            chartnum+=1
-            if v == "Bar":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bar_function(xval,yval)))
-            elif v == "Map":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.map_function(xval,yval)))
-            elif v == "Rings":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.rings_function(xval,yval)))
-            elif v == "Bubble":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.bubble_function(xval,yval)))
-            elif v == "Table":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.table_function(xval,yval)))
-            elif v == "Scatter":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.scatter_function(xval,yval)))
-            elif v == "Pie":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.pie_function(xval,yval)))
-            elif v == "Line":
-                charts.append(dcc.Graph(id=f'auto-graph{chartnum}',
-                        figure=cl.line_function(xval,yval)))
-
-        return charts
-        
+    except:
+        None
 
 
+#feedback button1
+@app.callback(
+                Output('auto-graph-radio1-output', 'children'),
+                [
+                Input('auto-graph-radio1', 'value')
+                ]
+            )
+
+def radio_output1(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
 
 
+#feedback button2
+@app.callback(
+                Output('auto-graph-radio2-output', 'children'),
+                [
+                Input('auto-graph-radio2', 'value')
+                ]
+            )
+
+def radio_output2(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+#feedback button3
+@app.callback(
+                Output('auto-graph-radio3-output', 'children'),
+                [
+                Input('auto-graph-radio3', 'value')
+                ]
+            )
+
+def radio_output3(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+#feedback button4
+@app.callback(
+                Output('auto-graph-radio4-output', 'children'),
+                [
+                Input('auto-graph-radio4', 'value')
+                ]
+            )
+
+def radio_output4(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+#feedback button5
+@app.callback(
+                Output('auto-graph-radio5-output', 'children'),
+                [
+                Input('auto-graph-radio5', 'value')
+                ]
+            )
+
+def radio_output5(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+#feedback button6
+@app.callback(
+                Output('auto-graph-radio6-output', 'children'),
+                [
+                Input('auto-graph-radio6', 'value')
+                ]
+            )
+
+def radio_output6(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+#feedback button7
+@app.callback(
+                Output('auto-graph-radio7-output', 'children'),
+                [
+                Input('auto-graph-radio7', 'value')
+                ]
+            )
+
+def radio_output7(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+#feedback button8
+@app.callback(
+                Output('auto-graph-radio8-output', 'children'),
+                [
+                Input('auto-graph-radio8', 'value')
+                ]
+            )
+
+def radio_output8(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+#feedback button9
+@app.callback(
+                Output('auto-graph-radio9-output', 'children'),
+                [
+                Input('auto-graph-radio9', 'value')
+                ]
+            )
+
+def radio_output9(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+
+#feedback button10
+@app.callback(
+                Output('auto-graph-radio10-output', 'children'),
+                [
+                Input('auto-graph-radio10', 'value')
+                ]
+            )
+
+def radio_output10(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+
+#feedback button11
+@app.callback(
+                Output('auto-graph-radio11-output', 'children'),
+                [
+                Input('auto-graph-radio11', 'value')
+                ]
+            )
+
+def radio_output11(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+
+#feedback button12
+@app.callback(
+                Output('auto-graph-radio12-output', 'children'),
+                [
+                Input('auto-graph-radio12', 'value')
+                ]
+            )
+
+def radio_output12(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+
+    #feedback button13
+@app.callback(
+                Output('auto-graph-radio13-output', 'children'),
+                [
+                Input('auto-graph-radio13', 'value')
+                ]
+            )
+
+def radio_output13(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+#feedback button14
+@app.callback(
+                Output('auto-graph-radio14-output', 'children'),
+                [
+                Input('auto-graph-radio14', 'value')
+                ]
+            )
+
+def radio_output14(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+#feedback button15
+@app.callback(
+                Output('auto-graph-radio15-output', 'children'),
+                [
+                Input('auto-graph-radio15', 'value')
+                ]
+            )
+
+def radio_output15(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)
+
+
+#feedback button16
+@app.callback(
+                Output('auto-graph-radio16-output', 'children'),
+                [
+                Input('auto-graph-radio16', 'value')
+                ]
+            )
+
+def radio_output16(
+                radiovalue
+                ):
+
+    feedback_func(radiovalue)

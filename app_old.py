@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[1]:
+
+#test
 #pip install flask-cors
 
 #pip install boto3
+# In[2]:
 
 import os
 import pandas as pd
@@ -12,41 +16,45 @@ import pymysql
 import sys
 from pandas.io.json import json_normalize
 pymysql.install_as_MySQLdb()
-import chardet
-
-#import dash dependencies
-import base64
-import datetime
-import io
-import plotly.graph_objs as go
-import cufflinks as cf
-import dash
-from dash.dependencies import Input, Output, State
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table
-import dash_bootstrap_components as dbc
-import chart_library as cl
-import itertools as it
-import decision_tree as dt
-import flask
 
 
 #Importing additional elemtns for S3 self signed URL generation
 from flask import Flask, render_template, request, redirect, url_for
-#change
+
 #Import JSON library and Amazon BOTO3 SDK library for Python
 import json, boto3
+
+# In[3]:
+
+
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
+
+
+# In[4]:
+
+
 from flask import (
     Flask,
     render_template,
     jsonify,
     request)
+
+
+# In[5]:
+
+
 from flask_cors import CORS
+
+
+
+
+
 from sqlalchemy import create_engine
+
+
 
 
 #Keep config file for our info. 
@@ -61,22 +69,29 @@ remote_gwsis_dbuser = os.environ.get('remote_gwsis_dbuser')
 #from config import remote_gwsis_dbname, remote_gwsis_dbuser, remote_gwsis_dbpwd
 
 
+# In[8]:
+
 #Create Cloud DB Connection. 
 engine = create_engine(f"mysql+pymysql://{remote_gwsis_dbuser}:{remote_gwsis_dbpwd}@{remote_db_endpoint}:{remote_db_port}/{remote_gwsis_dbname}")
 
+
+
+
+
+
 # Create remote DB connection.
-conn = engine.connect()
-app = flask.Flask(__name__)
+conn = engine.connect()   
+
+
+# In[10]:
+
+
+app = Flask(__name__, template_folder='./The_Visual_Analysis_Project')
 CORS(app)
 
-server = flask.Flask(__name__)
-
-@server.route('/')
-def index():
-    return 'Hello Flask app'
 
 
-@server.route('/postjson', methods = ['POST'])
+@app.route('/postjson', methods = ['POST'])
 def postJsonHandler():
     print (request.is_json)
     # read in JSON from POST requuest into content 
@@ -104,68 +119,99 @@ def postJsonHandler():
     #session.commit()
     return jsonify(content)
 
-@server.route("/datavisualization")
+@app.route("/datavisualization")
 def resultsAnalysis():
     """Return the Results analysis page."""
     return render_template("What_Are_Data_Visualizations.html")
 
-@server.route("/quizexplained")
+@app.route("/quizexplained")
 def quizExplained():
     """Return the Results analysis page."""
     return render_template("Quiz_Explained.html")
 
-@server.route("/visualquiz")
+@app.route("/visualquiz")
 def visualQuiz():
     """Return the Results analysis page."""
     return render_template("Visual_Quiz.html")
 
 
-@server.route("/api/data/results", methods=["GET", "POST"])
+@app.route("/api/data/results", methods=["GET", "POST"])
 def getSurveyResults():
     surveyResults = pd.read_sql(
         "SELECT value as QuestionNo, SUM(correct) AS NumCorrect, COUNT(*) AS NumAttempted, SUM(correct)/COUNT(*) AS PctCorrect FROM survey_results GROUP BY value", conn)
 
     return surveyResults.to_json(orient='records')
 
-# app route to access all survey results 
-@server.route("/api/data/raw_results", methods=["GET", "POST"])
-def getRaw_SurveyResults():
-    surveyResults = pd.read_sql(
-        "SELECT * FROM survey_results", conn)
-
-    return surveyResults.to_json(orient='records')
-
-@server.route("/api/data/newresults", methods=["GET", "POST"])
+@app.route("/api/data/newresults", methods=["GET", "POST"])
 def getNewSurveyResults():
     newResults = pd.read_sql(
         "SELECT COUNT(Distinct Survey_ID) AS numberOFattempts, COUNT(Value) AS questionsAnswered, (SUM(correct) / COUNT(*)) * 100 AS pctCorrect, SUM(correct) AS numCorrect, SUM(correct != 1) as numIncorrect,  SUM(correct)/COUNT(Distinct Survey_ID) AS avgScore FROM survey_results.survey_results", conn)
     return newResults.to_json(orient='records')
 
 
-@server.route("/api/data/resultsavg", methods=["GET", "POST"])
+@app.route("/api/data/resultsavg", methods=["GET", "POST"])
 def getAvgSurveyResults():
     avgResults = pd.read_sql(
         "select value as Question_Num, Data_Type, Chart_Type, sum(Correct) AS numCorrect, (sum(Correct) / (COUNT(Distinct Survey_ID))) * 100 As percent_correct from survey_results.survey_results group by value", conn)
     return avgResults.to_json(orient='records')
 
-@server.route('/upload', methods=['GET', 'POST'])
+@app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         # check if the post request has the file part
-        #if 'file' not in request.files:
-          #  flash('No file part')
-           # return redirect(request.url)
-     file = request.files['file']
-    # look at the first ten thousand bytes to guess the character encoding
-     
-    result = chardet.detect(file.read(10000))
-     # check what the character encoding might be
-    print(result)
-    print(result['encoding'])
-    file_df = pd.read_csv(file,encoding=result['encoding'])
-    print(file_df)
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit a empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data>
+      <p><input type=file name=file>
+         <input type=submit value=Upload>
+    </form>
+    '''
 
-@server.route('/headers', methods=['GET'])
-def print_headers():
-    headers = list(file.df)
-    return headers
+#App route that gets file name and file type from external front end JS and returns AWS self signed URL for upload
+@app.route('/sign_s3/')
+def sign_s3():
+  S3_BUCKET = os.environ.get('S3_BUCKET')
+
+  file_name = request.args.get('file_name')
+  file_type = request.args.get('file_type')
+
+  s3 = boto3.client('s3')
+
+  presigned_post = s3.generate_presigned_post(
+    Bucket = S3_BUCKET,
+    Key = file_name,
+    Fields = {"acl": "public-read", "Content-Type": file_type},
+    Conditions = [
+      {"acl": "public-read"},
+      {"Content-Type": file_type}
+    ],
+    ExpiresIn = 3600
+  )
+
+  return json.dumps({
+    'data': presigned_post,
+    'url': 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
+  })
+
+
+#app.run(host='127.0.0.1', port)
+
+
+
+

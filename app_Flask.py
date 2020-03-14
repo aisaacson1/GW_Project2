@@ -66,11 +66,11 @@ engine = create_engine(f"mysql+pymysql://{remote_gwsis_dbuser}:{remote_gwsis_dbp
 
 # Create remote DB connection.
 conn = engine.connect()
-app = flask.Flask(__name__)
-CORS(app)
+#app = flask.Flask(__name__)
+#CORS(app)
 
 server = flask.Flask(__name__)
-
+CORS(server)
 @server.route('/')
 def index():
     return 'Hello Flask app'
@@ -131,9 +131,17 @@ def getSurveyResults():
 @server.route("/api/data/raw_results", methods=["GET", "POST"])
 def getRaw_SurveyResults():
     surveyResults = pd.read_sql(
-        "SELECT * FROM survey_results", conn)
+        "SELECT * FROM survey_results where value!='feedbk'", conn)
 
     return surveyResults.to_json(orient='records')
+
+# app route to access all results 
+@server.route("/api/data/all_raw_results", methods=["GET", "POST"])
+def getAllRaw_SurveyResults():
+    allsurveyResults = pd.read_sql(
+        "SELECT * FROM survey_results", conn)
+
+    return allsurveyResults.to_json(orient='records')
 
 @server.route("/api/data/newresults", methods=["GET", "POST"])
 def getNewSurveyResults():

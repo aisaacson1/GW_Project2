@@ -15,8 +15,11 @@ import chart_library as cl
 
 
 
-url="https://gwprojectflask.herokuapp.com/api/data/raw_results"
-df = pd.read_json(url)
+# url="https://gwprojectflask.herokuapp.com/api/data/raw_results"
+# df = pd.read_json(url)
+
+path = "C:/Users/Aaron/Documents/GW_Data_Course/AIsaacson_GW_HW/GW_Project2_aji/sources/testing_data - dates.csv"
+df = pd.read_csv(path)
 
 # df = pd.read_csv("C:\Users\Aaron\Documents\GW_Data_Course\AIsaacson_GW_HW\GW_Project2_aji\sources\Quiz_results_test.csv", encoding="UTF-8")
 
@@ -222,9 +225,9 @@ app.layout = html.Div(children=[
                 id='example-graph1',
                 figure=cl.pie_function(c,b)
             ),
-            dcc.Graph(
+            html.Div(
                 id='example-graph2',
-                figure=cl.line_function(c,b)
+                figure=cl.charting_function1(df)
             )
         ])
     ])
