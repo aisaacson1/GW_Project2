@@ -145,8 +145,8 @@ def graph_maker(df,pairs):
                     ]))
         elif v[0] == "Table":
             charts.append(html.Div([
-                    dcc.Graph(id=f'auto-graph{chartnum}',
-                    figure=cl.table_function(xval,yval)),
+                    html.Div(id=f'auto-graph{chartnum}',
+                    children=cl.chart_function(xval,df)),
                     html.Label("Does the above chart show what you wanted?"),
                     dcc.RadioItems(
                         id=f'auto-graph-radio{chartnum}',
@@ -258,19 +258,25 @@ def decision_func(d):
 
     for k,v in fp.items():
         vlist = []
+        #'DimensionVsMeasure'
         if v == "CATvsVAL":
-            a = dt.decision([1,1,0,0,0,0])
+            a = dt.decision([1,0,1,0,0,0,0])
+        #Mapping
         elif v == "CATvsLATvsLON":
-            # a = dt.decision([1,0,0,1,0,0])
-            a = ['Map']
+            a = dt.decision([1,1,0,0,0,0,0])
+            # a = ['Map']
+        #Dimension(Location)VsMeasure
         elif v == "LOCvsVAL":
-            a = dt.decision([1,0,0,1,0,0])
+            a = dt.decision([1,0,0,0,1,0,0])
+        #Dimension(Time)VsMeasure
         elif v == "DTEvsVAL":
-            a = dt.decision([1,0,0,0,1,0])
+            a = dt.decision([1,0,0,0,0,1,0])
+        #MeasureVsMeasure
         elif v == "VALvsVAL":
-            a = dt.decision([1,0,0,0,0,1])
+            a = dt.decision([1,0,0,0,0,0,1])
+        #'Comparison'
         elif v == "VALvsBOL" or v == "CATvsBOL":
-            a = dt.decision([1,0,1,0,0,0])
+            a = dt.decision([1,0,0,1,0,0,0])
         else:
             a = "None"
         vlist.append(a[0])
@@ -282,6 +288,8 @@ def decision_func(d):
     for k,v in list(fp.items()):
         if v[0] == "N":
             del fp[k]   
+
+    print(fp)
 
     return fp
 
@@ -1365,33 +1373,6 @@ def radio_output16(
                 ):
 
     feedback_func(radiovalue)
-
-
-##save png button1
-# @app.callback(
-#                 Output('auto-graph-button1-1', 'children'),
-#                 [
-#                 Input('auto-graph-button1', 'n_clicks'),
-#                 ]
-#             )
-
-# def savefig1(
-#                     n_clicks,
-#                     ):
-
-#     try:
-#         if n_clicks < 1:
-#             print("button has not been clicked")
-#             return []
-
-#         else:
-#             pyo.plot(fig,auto_open=False,image='png')
-
-
-#             # return charts
-        
-#     except:
-#         None
 
 if __name__ == '__main__':
     app.run_server(debug=True)
